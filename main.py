@@ -18,10 +18,11 @@ x,y = data.load(opt)
 # Define model
 import model
 cnn = model.init(opt)
-cnn.compile(loss='categorical_crossentropy',optimizer='adadelta')
+cnn.compile(loss='categorical_crossentropy',optimizer='adadelta',
+              metrics=['accuracy'])
 
 # Train
-batch_size = 32
+batch_size = 64
 nb_epoch = 100
 history = cnn.fit(x,y,batch_size=batch_size,nb_epoch=nb_epoch,verbose=1,validation_split=0.04,shuffle=True)
 

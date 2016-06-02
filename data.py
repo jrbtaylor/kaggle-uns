@@ -26,9 +26,9 @@ def preprocess_y(x):
     y = np.reshape(y,[x.shape[0]*x.shape[1],2])
     return y
 
-def load(opt):  
+def load_train(opt):  
     path = '/home/jason/datasets/Kaggle_UNS/train'
-    print('Loading data')
+    print('Loading training data')
     files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path,f)) and f.endswith('.tif')]
     x_files = [f for f in files if not f.endswith('mask.tif')]
     y_files = [f for f in files if f.endswith('mask.tif')]
@@ -45,3 +45,17 @@ def load(opt):
 
     return x,y
 
+def load_test(opt):
+    path = '/home/jason/datasets/Kaggle_UNS/test'
+    print('Loading test data')
+    x_files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path,f)) and f.endswith('.tif')]
+    
+    # input image dimensions
+    img_rows, img_cols = opt['rows'], opt['cols'] # 1/4 the original size, upsample results for test
+    
+    x = np.empty([len(x_files),1,img_rows,img_cols],dtype=np.float32)
+    
+    for f in range(len(x_files)):
+        x[f,...] = preprocess_x(imresize(image.load_img(os.path.join(path,x_files[f]),grayscale=True),(img_rows,img_cols),interp='bilinear'))
+        
+    return x

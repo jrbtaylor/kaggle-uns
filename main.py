@@ -19,7 +19,6 @@ x_train,y_train = data.load_train(opt)
 x_test = data.load_test(opt)
 x_train,x_test = data.normalize(x_train,x_test)
 
-
 #%%
 # Model
 import model

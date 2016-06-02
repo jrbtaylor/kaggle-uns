@@ -30,8 +30,11 @@ def normalize(x_train,x_test):
     return x_train,x_test
 
 
-def load_train(opt):  
-    path = '/home/jason/datasets/Kaggle_UNS/train'
+def load_train(opt):
+    path = '/home/jason/datasets/Kaggle_UNS' # at home
+    if not os.path.isdir(path): # at school
+        path = '/usr/local/data/jtaylor/Databases/Kaggle-UNS'
+    path = os.path.join(path,'train')
     print('Loading training data')
     files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path,f)) and f.endswith('.tif')]
     x_files = [f for f in files if not f.endswith('mask.tif')]
@@ -50,7 +53,10 @@ def load_train(opt):
     return x,y
 
 def load_test(opt):
-    path = '/home/jason/datasets/Kaggle_UNS/test'
+    path = '/home/jason/datasets/Kaggle_UNS' # at home
+    if not os.path.isdir(path): # at school
+        path = '/usr/local/data/jtaylor/Databases/Kaggle-UNS'
+    path = os.path.join(path,'test')
     print('Loading test data')
     x_files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path,f)) and f.endswith('.tif')]
     

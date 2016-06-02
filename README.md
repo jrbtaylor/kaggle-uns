@@ -1,3 +1,3 @@
-# Kaggle_UNS
+# Kaggle-UNS
 Kaggle Ultrasound Nerve Segmentation Challenge
 

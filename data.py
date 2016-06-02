@@ -10,11 +10,6 @@ import numpy as np
 from keras.preprocessing import image
 from scipy.misc import imresize
 
-def preprocess_x(x):
-    x -= np.min(x)
-    x = x/np.std(x)
-    return x
-    
 def preprocess_y(x):
     y = np.zeros([x.shape[0],x.shape[1],2])
     for r in range(x.shape[0]):
@@ -25,6 +20,15 @@ def preprocess_y(x):
                 y[r,c,0] = 1
     y = np.reshape(y,[x.shape[0]*x.shape[1],2])
     return y
+    
+def normalize(x_train,x_test):
+    print('Normalizing data')
+    mean = np.mean(x_train)
+    std = np.std(x_train)
+    x_train = (x_train-mean)/std
+    x_test = (x_test-mean)/std
+    return x_train,x_test
+
 
 def load_train(opt):  
     path = '/home/jason/datasets/Kaggle_UNS/train'
@@ -40,7 +44,7 @@ def load_train(opt):
     y = np.empty([len(y_files),img_rows*img_cols,2],dtype=np.float32)
     
     for f in range(len(x_files)):
-        x[f,...] = preprocess_x(imresize(image.load_img(os.path.join(path,x_files[f]),grayscale=True),(img_rows,img_cols),interp='bilinear'))
+        x[f,...] = imresize(image.load_img(os.path.join(path,x_files[f]),grayscale=True),(img_rows,img_cols),interp='bilinear')
         y[f,...] = preprocess_y(imresize(image.load_img(os.path.join(path,y_files[f]),grayscale=True),[img_rows,img_cols],interp='nearest'))
 
     return x,y
@@ -56,6 +60,6 @@ def load_test(opt):
     x = np.empty([len(x_files),1,img_rows,img_cols],dtype=np.float32)
     
     for f in range(len(x_files)):
-        x[f,...] = preprocess_x(imresize(image.load_img(os.path.join(path,x_files[f]),grayscale=True),(img_rows,img_cols),interp='bilinear'))
+        x[f,...] = imresize(image.load_img(os.path.join(path,x_files[f]),grayscale=True),(img_rows,img_cols),interp='bilinear')
         
     return x

@@ -24,8 +24,9 @@ def prep(y):
     from scipy.misc import imresize
     from keras import backend as K
     rows_out, cols_out = 420, 580
-    y = imresize(y,[rows_out,cols_out],interp='bilinear')>0.5
-    y = K.flatten(y)
+    y = imresize(np.squeeze(y),[rows_out,cols_out],interp='bilinear')>0.5
+    y = np.transpose(y)
+    y = np.reshape(y,[rows_out*cols_out])
     return y
     
     

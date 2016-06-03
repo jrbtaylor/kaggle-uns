@@ -34,12 +34,15 @@ else:
 import model
 cnn = model.init()
 
+# Augmentation
+#import augment
+
 # Train
 batch_size = 32
 nb_epoch = 100
 from keras.callbacks import ModelCheckpoint
 checkpoint = ModelCheckpoint('cnn.hdf5', monitor='val_loss', save_best_only=True)
-earlyStopping=keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, verbose=0)
+earlyStopping=keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=0)
 history = cnn.fit(x_train,y_train,batch_size=batch_size,nb_epoch=nb_epoch,verbose=1,callbacks=[checkpoint,earlyStopping],validation_split=0.04,shuffle=True)
 
 #%%

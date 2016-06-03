@@ -14,8 +14,8 @@ def init():
     from data import rows, cols
     
     inputs = Input((1,rows,cols))
-#    conv1 = GaussianDropout(0.1)(inputs)
-    conv1 = Convolution2D(16,3,3,activation='relu',border_mode='same')(inputs)
+    conv1 = GaussianDropout(0.1)(inputs)
+    conv1 = Convolution2D(16,3,3,activation='relu',border_mode='same')(conv1)
     conv1 = BatchNormalization()(conv1)
     conv1 = Convolution2D(16,3,3,activation='relu',border_mode='same')(conv1)
     conv2 = MaxPooling2D(pool_size=(2,2))(conv1)

@@ -12,12 +12,11 @@ def run_length_enc(y):
     from itertools import chain
     from scipy.misc import imresize
     rows_out, cols_out = 420, 580
-    y = y[:,:,1]
-    y = np.reshape(y,[y.shape[0],rows,cols])    
-    yo = np.empty([y.shape[0],rows_out,cols_out],dtype=np.uint8)
-    for i in range(y.shape[0]):
-        yo[i,...] = imresize(y[i,...],[rows_out,cols_out],interp='bilinear')>0.5
-    yo = np.reshape(yo,[yo.shape[0],rows_out*cols_out])
+    y = y[:,1]
+    y = np.reshape(y,[rows,cols])    
+#    yo = np.empty([rows_out,cols_out],dtype=np.uint8)
+    yo = imresize(y,[rows_out,cols_out],interp='bilinear')>0.5
+    yo = np.reshape(yo,[rows_out*cols_out])
     y = np.where(yo)[0]
     if len(y) < 10:  # consider as empty
         return ''
@@ -31,13 +30,13 @@ def run_length_enc(y):
     
 def final(y,idx):
     argsort = np.argsort(idx)
-    y = y[argsort]
+    y = y[argsort,:,:]
     idx = idx[argsort]
     total = idx.shape[0]
         
     rle = []
     for i in range(total):
-        rle.append(run_length_enc(y))
+        rle.append(run_length_enc(y[i,:,:]))
         if i % 100 == 0:
             print('{}/{}'.format(i, total))
 

@@ -36,7 +36,10 @@ def load_train():
     for f in range(len(x_files)):
         x[f,...] = imresize(image.load_img(os.path.join(path,x_files[f]),grayscale=True),(rows,cols),interp='bilinear')
         y[f,...] = imresize(image.load_img(os.path.join(path,y_files[f]),grayscale=True),[rows,cols],interp='nearest')
-
+    
+    # rescale y to 0-1
+    y = y/255
+    
     return x,y
 
 def load_test():

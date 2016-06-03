@@ -8,10 +8,17 @@ Created on Thu Jun  2 11:33:13 2016
 import numpy as np
 
 def run_length_enc(y):
+    from data import rows, cols
     from itertools import chain
+    from scipy.misc import imresize
+    rows_out, cols_out = 420, 580
     y = y[:,:,1]
-    x = label.transpose().flatten()
-    y = np.where(x > 0)[0]
+    y = np.reshape(y,[y.shape[0],rows,cols])    
+    yo = np.empty([y.shape[0],rows_out,cols_out],dtype=np.uint8)
+    for i in range(y.shape[0]):
+        yo[i,...] = imresize(y[i,...],[rows_out,cols_out],interp='bilinear')>0.5
+    yo = np.reshape(yo,[yo.shape[0],rows_out*cols_out])
+    y = np.where(yo)[0]
     if len(y) < 10:  # consider as empty
         return ''
     z = np.where(np.diff(y) > 1)[0]
@@ -22,26 +29,15 @@ def run_length_enc(y):
     res = list(chain.from_iterable(res))
     return ' '.join([str(r) for r in res])
     
-def submission():
-    from data import load_test_data
-    imgs_test, imgs_id_test = load_test_data()
-    imgs_test = np.load('imgs_mask_test.npy')
-
-    argsort = np.argsort(imgs_id_test)
-    imgs_id_test = imgs_id_test[argsort]
-    imgs_test = imgs_test[argsort]
-
-    total = imgs_test.shape[0]
-    ids = []
-    rles = []
+def final(y,idx):
+    argsort = np.argsort(idx)
+    y = y[argsort]
+    idx = idx[argsort]
+    total = idx.shape[0]
+        
+    rle = []
     for i in range(total):
-        img = imgs_test[i, 0]
-        img = prep(img)
-        rle = run_length_enc(img)
-
-        rles.append(rle)
-        ids.append(imgs_id_test[i])
-
+        rle.append(run_length_enc(y))
         if i % 100 == 0:
             print('{}/{}'.format(i, total))
 
@@ -51,5 +47,5 @@ def submission():
     with open(file_name, 'w+') as f:
         f.write(first_row + '\n')
         for i in range(total):
-            s = str(ids[i]) + ',' + rles[i]
+            s = str(idx[i]) + ',' + rle[i]
             f.write(s + '\n')

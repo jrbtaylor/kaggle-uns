@@ -20,6 +20,25 @@ def normalize(x_train,x_test):
     x_train = (x_train-mean)/std
     x_test = (x_test-mean)/std
     return x_train,x_test
+    
+
+# align x and y files so the image and labels correspond
+def _align_files(x,y):
+    def _rem_mask(y):
+        return y.split('_mask')[0]    
+    def _rem_tif(x):
+        return x.split('.')[0]
+    x2 = []
+    y2 = []
+    for f in range(len(x)):
+        x2.append(_rem_tif(x[f]))
+        y2.append(_rem_mask(y[f]))
+    sort_idx = np.empty([len(x),],dtype=np.int32)
+    for f in range(len(x)):
+        sort_idx[f] = y2.index(x2[f])
+    y = [y[i] for i in sort_idx]
+    return x,y
+    
 
 def load_train():
     path = '/home/jason/datasets/Kaggle_UNS' # at home
@@ -31,6 +50,9 @@ def load_train():
     x_files = [f for f in files if not f.endswith('mask.tif')]
     y_files = [f for f in files if f.endswith('mask.tif')]
     
+    # sort x_files and y_files so they correspond
+    x_files,y_files = _align_files(x_files,y_files)
+    
     x = np.empty([len(x_files),1,rows,cols],dtype=np.float32)
     y = np.empty([len(y_files),1,rows,cols],dtype=np.float32)
     for f in range(len(x_files)):
@@ -41,6 +63,7 @@ def load_train():
     y = y/255
     
     return x,y
+
 
 def load_test():
     path = '/home/jason/datasets/Kaggle_UNS' # at home

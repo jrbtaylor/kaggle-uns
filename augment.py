@@ -29,7 +29,7 @@ def apply_transform(x, transform_matrix, channel_index=0, fill_mode='nearest', c
     final_affine_matrix = transform_matrix[:2, :2]
     final_offset = transform_matrix[:2, 2]
     channel_images = [ndi.interpolation.affine_transform(x_channel, final_affine_matrix,
-                      final_offset, order=0, mode=fill_mode, cval=cval) for x_channel in x]
+                      final_offset, order=3, mode=fill_mode, cval=cval) for x_channel in x]
     x = np.stack(channel_images, axis=0)
     x = np.rollaxis(x, 0, channel_index+1)
     return x
@@ -50,7 +50,7 @@ class Generator(object):
                  zoom_range = 0.,
                  shear_range = 0.):
         self.__dict__.update(locals())
-        self.zoom_range = [1,1+zoom_range]
+        self.zoom_range = [1-zoom_range,1] # zoom in only, no border effects
     
     def flow(self, x, y, batch_size=32, shuffle=True, seed=None):
         return NumpyArrayIterator(
@@ -62,7 +62,7 @@ class Generator(object):
         rotation = np.array([[np.cos(rotation), -np.sin(rotation), 0],
                              [np.sin(rotation), np.cos(rotation), 0],
                              [0, 0, 1]])
-        shear = np.random.uniform(-self.shear_range,self.shear_range)
+        shear = np.pi/180*np.random.uniform(-self.shear_range,self.shear_range)
         shear = np.array([[1, -np.sin(shear),0],
                           [0,  np.cos(shear),0],
                           [0, 0, 1]])

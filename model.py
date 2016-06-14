@@ -62,46 +62,64 @@ def _dice(y_true,y_pred):
     return -_dice_loss(y_true,y_pred)
         
         
-def init_res():
+def init_res(f):
     inputs = Input((1,rows,cols))
+    conv1 = Convolution2D(f,3,3,activation='relu',border_mode='same')(inputs)
+    conv1 = BatchNormalization()(conv1)
+    conv1 = Convolution2D(f,3,3,activation='relu',border_mode='same')(conv1)
+    conv2 = MaxPooling2D(pool_size=(2,2))(conv1)
+    conv2 = BatchNormalization()(conv2)
+    conv2 = Convolution2D(2*f,3,3,activation='relu',border_mode='same')(conv2)
+    conv2 = BatchNormalization()(conv2)
+    conv2 = Convolution2D(2*f,3,3,activation='relu',border_mode='same')(conv2)
+    conv3 = MaxPooling2D(pool_size=(2,2))(conv2)
+    conv3 = BatchNormalization()(conv3)
+    conv3 = Convolution2D(4*f,3,3,activation='relu',border_mode='same')(conv3)
+    conv3 = BatchNormalization()(conv3)
+    conv3 = Convolution2D(4*f,3,3,activation='relu',border_mode='same')(conv3)
+    conv4 = MaxPooling2D(pool_size=(2,2))(conv3)
+    conv4 = BatchNormalization()(conv4)
+    conv4 = Convolution2D(8*f,3,3,activation='relu',border_mode='same')(conv4)
+    conv4 = BatchNormalization()(conv4)
+    conv4 = Convolution2D(8*f,3,3,activation='relu',border_mode='same')(conv4)
+    conv5 = MaxPooling2D(pool_size=(2,2))(conv4)
+    conv5 = BatchNormalization()(conv5)
+    conv5 = Convolution2D(16*f,3,3,activation='relu',border_mode='same')(conv5)
+    conv5 = BatchNormalization()(conv5)
+    conv5 = Convolution2D(16*f,3,3,activation='relu',border_mode='same')(conv5)
+#    dense = Flatten()(conv5)
+#    dense = Dense(64,activation='relu')(dense)
+#    dense = Dense(1,activation='hard_sigmoid')(dense)
     
-    conv1 = Convolution2D(32,3,3,activation='relu',border_mode='same')(inputs)
-    res1 = _res_block(32)(conv1)
-    dwn1 = MaxPooling2D(pool_size=(2,2))(res1)
-    
-    conv2 = Convolution2D(64,3,3,activation='relu',border_mode='same')(dwn1)
-    res2 = _res_block(64)(conv2)
-    dwn2 = MaxPooling2D(pool_size=(2,2))(res2)
-    
-    conv3 = Convolution2D(128,3,3,activation='relu',border_mode='same')(dwn2)
-    res3 = _res_block(128)(conv3)
-    dwn3 = MaxPooling2D(pool_size=(2,2))(res3)
-    
-    conv4 = Convolution2D(256,3,3,activation='relu',border_mode='same')(dwn3)
-    res4 = _res_block(256)(conv4)
-    dwn4 = MaxPooling2D(pool_size=(2,2))(res4)
-    
-    conv5 = Convolution2D(512,3,3,activation='relu',border_mode='same')(dwn4)
-    res5 = _res_block(512)(conv5)
-    up5 = merge([UpSampling2D(size=(2,2))(res5),res4],mode='concat',concat_axis=1)
-    
-    conv6 = Convolution2D(256,3,3,activation='relu',border_mode='same')(up5)
-    res6 = _res_block(256)(conv6)
-    up6 = merge([UpSampling2D(size=(2,2))(res6),res3],mode='concat',concat_axis=1)
-    
-    conv7 = Convolution2D(128,3,3,activation='relu',border_mode='same')(up6)
-    res7 = _res_block(128)(conv7)
-    up7 = merge([UpSampling2D(size=(2,2))(res7),res2],mode='concat',concat_axis=1)
-    
-    conv8 = Convolution2D(64,3,3,activation='relu',border_mode='same')(up7)
-    res8 = _res_block(64)(conv8)
-    up8 = merge([UpSampling2D(size=(2,2))(res8),res1],mode='concat',concat_axis=1)
-    
-    conv9 = Convolution2D(32,3,3,activation='relu',border_mode='same')(up8)
-    res9 = _res_block(32)(conv9)
-    
-    outputs = Convolution2D(1,1,1,activation='hard_sigmoid',border_mode='same')(res9)
-    outputs = Convolution2D(1,11,11,activation='hard_sigmoid',border_mode='same')(outputs)
+    up1 = merge([UpSampling2D(size=(2,2))(conv5),conv4],mode='concat',concat_axis=1)
+    conv6 = BatchNormalization()(up1)
+#    conv6 = Dropout(0.3)(up1)
+    conv6 = _res_block(8*f)(conv6)
+#    conv6 = Dropout(0.3)(conv6)
+    conv6 = BatchNormalization()(conv6)
+    conv6 = _res_block(8*f)(conv6)
+    up2 = merge([UpSampling2D(size=(2,2))(conv6),conv3],mode='concat',concat_axis=1)
+#    conv7 = Dropout(0.3)(up2)
+    conv7 = BatchNormalization()(up2)
+    conv7 = _res_block(4*f)(conv7)
+#    conv7 = Dropout(0.3)(conv7)
+    conv7 = BatchNormalization()(conv7)
+    conv7 = _res_block(4*f)(conv7)
+    up3 = merge([UpSampling2D(size=(2,2))(conv7),conv2],mode='concat',concat_axis=1)
+#    conv8 = Dropout(0.3)(up3)
+    conv8 = BatchNormalization()(up3)
+    conv8 = _res_block(2*f)(conv8)
+#    conv8 = Dropout(0.2)(conv8)
+    conv8 = BatchNormalization()(conv8)
+    conv8 = _res_block(2*f)(conv8)
+    up4 = merge([UpSampling2D(size=(2,2))(conv8),conv1],mode='concat',concat_axis=1)
+#    conv9 = Dropout(0.3)(up4)
+    conv9 = BatchNormalization()(up4)
+    conv9 = _res_block(f)(conv9)
+#    conv9 = Dropout(0.4)(conv9)
+    conv9 = BatchNormalization()(conv9)
+    outputs = Convolution2D(1,1,1,activation='hard_sigmoid',border_mode='same')(conv9)
+#    outputs = Convolution2D(1,11,11,activation='hard_sigmoid',border_mode='same')(outputs)
     
     net = Model(input=inputs,output=outputs)
 
@@ -177,36 +195,36 @@ def init_fractalunet():
     # --- end first u block
     
     down1b = MaxPooling2D(pool_size=(2,2))(conv9)
+    down1b = merge([down1b,conv8],mode='concat',concat_axis=1)
     
     conv2b = BatchNormalization()(down1b)
     conv2b = Convolution2D(2*f,3,3,activation='relu',border_mode='same')(conv2b)
     conv2b = BatchNormalization()(conv2b)
     conv2b = Convolution2D(2*f,3,3,activation='relu',border_mode='same')(conv2b)
-    conv2b = merge([conv2,conv2b],mode='sum')
     
     down2b = MaxPooling2D(pool_size=(2,2))(conv2b)
+    down2b = merge([down2b,conv7],mode='concat',concat_axis=1)
     
     conv3b = BatchNormalization()(down2b)
     conv3b = Convolution2D(4*f,3,3,activation='relu',border_mode='same')(conv3b)
     conv3b = BatchNormalization()(conv3b)
     conv3b = Convolution2D(4*f,3,3,activation='relu',border_mode='same')(conv3b)
-    conv3b = merge([conv3,conv3b],mode='sum')
     
     down3b = MaxPooling2D(pool_size=(2,2))(conv3b)
+    down3b = merge([down3b,conv6],mode='concat',concat_axis=1)
     
     conv4b = BatchNormalization()(down3b)
     conv4b = Convolution2D(8*f,3,3,activation='relu',border_mode='same')(conv4b)
     conv4b = BatchNormalization()(conv4b)
     conv4b = Convolution2D(8*f,3,3,activation='relu',border_mode='same')(conv4b)
-    conv4b = merge([conv4,conv4b],mode='sum')
     
     down4b = MaxPooling2D(pool_size=(2,2))(conv4b)
+    down4b = merge([down4b,conv5],mode='concat',concat_axis=1)
     
     conv5b = BatchNormalization()(down4b)
     conv5b = Convolution2D(16*f,3,3,activation='relu',border_mode='same')(conv5b)
     conv5b = BatchNormalization()(conv5b)
     conv5b = Convolution2D(16*f,3,3,activation='relu',border_mode='same')(conv5b)
-    conv5b = merge([conv5,conv5b],mode='sum')
     
     up1b = merge([UpSampling2D(size=(2,2))(conv5b),conv4b],mode='concat',concat_axis=1)
     
@@ -214,7 +232,6 @@ def init_fractalunet():
     conv6b = Convolution2D(8*f,3,3,activation='relu',border_mode='same')(conv6b)
     conv6b = BatchNormalization()(conv6b)
     conv6b = Convolution2D(8*f,3,3,activation='relu',border_mode='same')(conv6b)
-    conv6b = merge([conv6,conv6b],mode='sum')
     
     up2b = merge([UpSampling2D(size=(2,2))(conv6b),conv3b],mode='concat',concat_axis=1)
     
@@ -222,7 +239,6 @@ def init_fractalunet():
     conv7b = Convolution2D(4*f,3,3,activation='relu',border_mode='same')(conv7b)
     conv7b = BatchNormalization()(conv7b)
     conv7b = Convolution2D(4*f,3,3,activation='relu',border_mode='same')(conv7b)
-    conv7b = merge([conv7,conv7b],mode='sum')
     
     up3b = merge([UpSampling2D(size=(2,2))(conv7b),conv2b],mode='concat',concat_axis=1)
     
@@ -230,7 +246,6 @@ def init_fractalunet():
     conv8b = Convolution2D(2*f,3,3,activation='relu',border_mode='same')(conv8b)
     conv8b = BatchNormalization()(conv8b)
     conv8b = Convolution2D(2*f,3,3,activation='relu',border_mode='same')(conv8b)
-    conv8b = merge([conv8,conv8b],mode='sum')
     
     up4b = merge([UpSampling2D(size=(2,2))(conv8b),conv9],mode='concat',concat_axis=1)
     
@@ -241,11 +256,11 @@ def init_fractalunet():
     conv9b = BatchNormalization()(conv9b)
     
     outputs = Convolution2D(1,1,1,activation='hard_sigmoid',border_mode='same')(conv9b)
-    outputs = Convolution2D(1,11,11,activation='hard_sigmoid',border_mode='same')(outputs)
+#    outputs = Convolution2D(1,11,11,activation='hard_sigmoid',border_mode='same')(outputs)
     
     net = Model(input=inputs,output=outputs)
 
-    net.compile(loss=_dice_loss,optimizer='adam',metrics=[_dice])
+    net.compile(loss=_dice_loss,optimizer='adadelta',metrics=[_dice])
     
     return net
         
@@ -303,36 +318,36 @@ def init_conv():
     
     net = Model(input=inputs,output=outputs)
 
-    net.compile(loss=_dice_loss,optimizer='adam',metrics=[_dice])
+    net.compile(loss=_dice_loss,optimizer='adadelta',metrics=[_dice])
     
     return net
     
 
-def init_conv_old():    
+def init_conv_old(f): 
     inputs = Input((1,rows,cols))
-    conv1 = Convolution2D(32,3,3,activation='relu',border_mode='same')(inputs)
+    conv1 = Convolution2D(f,3,3,activation='relu',border_mode='same')(inputs)
     conv1 = BatchNormalization()(conv1)
-    conv1 = Convolution2D(32,3,3,activation='relu',border_mode='same')(conv1)
+    conv1 = Convolution2D(f,3,3,activation='relu',border_mode='same')(conv1)
     conv2 = MaxPooling2D(pool_size=(2,2))(conv1)
     conv2 = BatchNormalization()(conv2)
-    conv2 = Convolution2D(64,3,3,activation='relu',border_mode='same')(conv2)
+    conv2 = Convolution2D(2*f,3,3,activation='relu',border_mode='same')(conv2)
     conv2 = BatchNormalization()(conv2)
-    conv2 = Convolution2D(64,3,3,activation='relu',border_mode='same')(conv2)
+    conv2 = Convolution2D(2*f,3,3,activation='relu',border_mode='same')(conv2)
     conv3 = MaxPooling2D(pool_size=(2,2))(conv2)
     conv3 = BatchNormalization()(conv3)
-    conv3 = Convolution2D(128,3,3,activation='relu',border_mode='same')(conv3)
+    conv3 = Convolution2D(4*f,3,3,activation='relu',border_mode='same')(conv3)
     conv3 = BatchNormalization()(conv3)
-    conv3 = Convolution2D(128,3,3,activation='relu',border_mode='same')(conv3)
+    conv3 = Convolution2D(4*f,3,3,activation='relu',border_mode='same')(conv3)
     conv4 = MaxPooling2D(pool_size=(2,2))(conv3)
     conv4 = BatchNormalization()(conv4)
-    conv4 = Convolution2D(256,3,3,activation='relu',border_mode='same')(conv4)
+    conv4 = Convolution2D(8*f,3,3,activation='relu',border_mode='same')(conv4)
     conv4 = BatchNormalization()(conv4)
-    conv4 = Convolution2D(256,3,3,activation='relu',border_mode='same')(conv4)
+    conv4 = Convolution2D(8*f,3,3,activation='relu',border_mode='same')(conv4)
     conv5 = MaxPooling2D(pool_size=(2,2))(conv4)
     conv5 = BatchNormalization()(conv5)
-    conv5 = Convolution2D(512,3,3,activation='relu',border_mode='same')(conv5)
+    conv5 = Convolution2D(16*f,3,3,activation='relu',border_mode='same')(conv5)
     conv5 = BatchNormalization()(conv5)
-    conv5 = Convolution2D(512,3,3,activation='relu',border_mode='same')(conv5)
+    conv5 = Convolution2D(16*f,3,3,activation='relu',border_mode='same')(conv5)
 #    dense = Flatten()(conv5)
 #    dense = Dense(64,activation='relu')(dense)
 #    dense = Dense(1,activation='hard_sigmoid')(dense)
@@ -340,28 +355,28 @@ def init_conv_old():
     up1 = merge([UpSampling2D(size=(2,2))(conv5),conv4],mode='concat',concat_axis=1)
     conv6 = BatchNormalization()(up1)
 #    conv6 = Dropout(0.3)(up1)
-    conv6 = Convolution2D(256,3,3,activation='relu',border_mode='same')(conv6)
+    conv6 = Convolution2D(8*f,3,3,activation='relu',border_mode='same')(conv6)
 #    conv6 = Dropout(0.3)(conv6)
     conv6 = BatchNormalization()(conv6)
-    conv6 = Convolution2D(256,3,3,activation='relu',border_mode='same')(conv6)
+    conv6 = Convolution2D(8*f,3,3,activation='relu',border_mode='same')(conv6)
     up2 = merge([UpSampling2D(size=(2,2))(conv6),conv3],mode='concat',concat_axis=1)
 #    conv7 = Dropout(0.3)(up2)
     conv7 = BatchNormalization()(up2)
-    conv7 = Convolution2D(128,3,3,activation='relu',border_mode='same')(conv7)
+    conv7 = Convolution2D(4*f,3,3,activation='relu',border_mode='same')(conv7)
 #    conv7 = Dropout(0.3)(conv7)
     conv7 = BatchNormalization()(conv7)
-    conv7 = Convolution2D(128,3,3,activation='relu',border_mode='same')(conv7)
+    conv7 = Convolution2D(4*f,3,3,activation='relu',border_mode='same')(conv7)
     up3 = merge([UpSampling2D(size=(2,2))(conv7),conv2],mode='concat',concat_axis=1)
 #    conv8 = Dropout(0.3)(up3)
     conv8 = BatchNormalization()(up3)
-    conv8 = Convolution2D(64,3,3,activation='relu',border_mode='same')(conv8)
+    conv8 = Convolution2D(2*f,3,3,activation='relu',border_mode='same')(conv8)
 #    conv8 = Dropout(0.2)(conv8)
     conv8 = BatchNormalization()(conv8)
-    conv8 = Convolution2D(64,3,3,activation='relu',border_mode='same')(conv8)
+    conv8 = Convolution2D(2*f,3,3,activation='relu',border_mode='same')(conv8)
     up4 = merge([UpSampling2D(size=(2,2))(conv8),conv1],mode='concat',concat_axis=1)
 #    conv9 = Dropout(0.3)(up4)
     conv9 = BatchNormalization()(up4)
-    conv9 = Convolution2D(32,3,3,activation='relu',border_mode='same')(conv9)
+    conv9 = Convolution2D(f,3,3,activation='relu',border_mode='same')(conv9)
 #    conv9 = Dropout(0.4)(conv9)
     conv9 = BatchNormalization()(conv9)
     outputs = Convolution2D(1,1,1,activation='hard_sigmoid',border_mode='same')(conv9)

@@ -15,6 +15,7 @@ import numpy as np
 import scipy.ndimage as ndi
 import threading
 
+
 def transform_matrix_offset_center(matrix, x, y):
     o_x = float(x) / 2 + 0.5
     o_y = float(y) / 2 + 0.5
@@ -33,6 +34,7 @@ def apply_transform(x, transform_matrix, channel_index=0, fill_mode='nearest', c
     x = np.stack(channel_images, axis=0)
     x = np.rollaxis(x, 0, channel_index+1)
     return x
+    
     
 class Generator(object):
     ''' Generate minibatches w/ data augmentation

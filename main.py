@@ -52,13 +52,13 @@ nb_epoch = 1000
 
 import augment
 reload(augment)
-datagen = augment.Generator(horizontal_flip=True)
+datagen = augment.Generator(horizontal_flip=True,rotation_range=10,zoom_range=0.05,shear_range=5)
 #datagen = augment.Generator()
 trainflow = datagen.flow(x_train,y_train,batch_size=batch_size,seed=1)
 
 from keras.callbacks import ModelCheckpoint, EarlyStopping
-checkpoint = ModelCheckpoint('cnn_fire.hdf5', monitor='val_loss', save_best_only=True)
-earlyStopping= EarlyStopping(monitor='val_loss', patience=20, verbose=0)
+checkpoint = ModelCheckpoint('cnn.hdf5', monitor='val_loss', save_best_only=True)
+earlyStopping= EarlyStopping(monitor='val_loss', patience=100, verbose=0)
 history = cnn.fit_generator(trainflow,samples_per_epoch=epoch_size,nb_epoch=nb_epoch,verbose=1,callbacks=[checkpoint,earlyStopping],validation_data=(x_val,y_val),max_q_size=10)
 #history = cnn.fit(x_train,y_train,batch_size=batch_size,nb_epoch=nb_epoch,verbose=1,callbacks=[checkpoint,earlyStopping],validation_data=(x_val,y_val),shuffle=True)
 
@@ -66,7 +66,9 @@ history = cnn.fit_generator(trainflow,samples_per_epoch=epoch_size,nb_epoch=nb_e
 #%% 
 # Test
 cnn.load_weights('cnn.hdf5')
-batch_size = 256
+batch_size = 32
 y_pred = cnn.predict(x_test,batch_size=batch_size,verbose=1)
+import postprocessing; reload(postprocessing)
+y_pred = postprocessing.final(y_pred,y_train)
 import submit
 submit.final(y_pred,idx_test)

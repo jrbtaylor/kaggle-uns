@@ -12,6 +12,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import numpy as np
+np.random.seed(1)
 import scipy.ndimage as ndi
 import threading
 
@@ -39,7 +40,7 @@ def apply_transform(x, transform_matrix, channel_index=0, fill_mode='nearest', c
 class Generator(object):
     ''' Generate minibatches w/ data augmentation
     includes:
-        - multiplicative speckle noise
+        ***TO DO- multiplicative speckle noise
         - horizontal flipping
         - rotations 
         - zooming (scaling up and cropping)

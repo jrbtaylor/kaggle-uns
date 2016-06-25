@@ -47,13 +47,13 @@ class Generator(object):
         - shearing
     '''
     def __init__(self,
-                 horizontal_flip = False,
-                 vertical_flip = False,
-                 rotation_range = 0.,
-                 zoom_range = 0.,
-                 shear_range = 0.):
+                 hflip = False,
+                 vflip = False,
+                 rotation = 0.,
+                 zoom = 0.,
+                 shear = 0.):
         self.__dict__.update(locals())
-        self.zoom_range = [1-zoom_range,1] # zoom in only, no border effects
+        self.zoom = [1-zoom,1] # zoom in only, no border effects
     
     def flow(self, x, y, batch_size=32, shuffle=True, seed=None):
         return NumpyArrayIterator(
@@ -61,15 +61,15 @@ class Generator(object):
             batch_size=batch_size, shuffle=shuffle, seed=seed)
     
     def random_transform(self,x,y):
-        rotation = np.pi/180*np.random.uniform(-self.rotation_range,self.rotation_range)
+        rotation = np.pi/180*np.random.uniform(-self.rotation,self.rotation)
         rotation = np.array([[np.cos(rotation), -np.sin(rotation), 0],
                              [np.sin(rotation), np.cos(rotation), 0],
                              [0, 0, 1]])
-        shear = np.pi/180*np.random.uniform(-self.shear_range,self.shear_range)
+        shear = np.pi/180*np.random.uniform(-self.shear,self.shear)
         shear = np.array([[1, -np.sin(shear),0],
                           [0,  np.cos(shear),0],
                           [0, 0, 1]])
-        zx, zy = np.random.uniform(self.zoom_range[0], self.zoom_range[1], 2)
+        zx, zy = np.random.uniform(self.zoom[0], self.zoom[1], 2)
         zoom = np.array([[zx, 0, 0],
                          [0, zy, 0],
                          [0, 0, 1]])
@@ -82,12 +82,12 @@ class Generator(object):
         
         y = np.float32(y>0.5) # fix labels back to {0,1}
         
-        if self.horizontal_flip:
+        if self.hflip:
             if np.random.random() < 0.5:
                 x = x[:,::-1]
                 y = y[:,::-1]
                 
-        if self.vertical_flip:
+        if self.vflip:
             if np.random.random() < 0.5:
                 x = x[::-1,:]
                 y = y[::-1,:]

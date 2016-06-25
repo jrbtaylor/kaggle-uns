@@ -43,7 +43,7 @@ y_train = y_train[shuffle[nb_val:],:,:,:]
 # Model
 import model
 reload(model)
-cnn = model.init_res(32)
+cnn = model.init_resMulti(32)
 
 # Training w/ augmentation
 epoch_size = 512
@@ -52,7 +52,7 @@ nb_epoch = 1000
 
 import augment
 reload(augment)
-datagen = augment.Generator(horizontal_flip=True,rotation_range=10,zoom_range=0.05,shear_range=5)
+datagen = augment.Generator(hflip=True,vflip=True,rotation=10,zoom=0.05,shear=5)
 #datagen = augment.Generator()
 trainflow = datagen.flow(x_train,y_train,batch_size=batch_size,seed=1)
 
@@ -65,6 +65,8 @@ history = cnn.fit_generator(trainflow,samples_per_epoch=epoch_size,nb_epoch=nb_e
 
 #%% 
 # Test
+import model; reload(model)
+cnn = model.init_resMulti(32)
 cnn.load_weights('cnn.hdf5')
 batch_size = 32
 y_pred = cnn.predict(x_test,batch_size=batch_size,verbose=1)

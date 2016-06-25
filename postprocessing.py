@@ -10,7 +10,7 @@ import numpy as np
 
 
 def _binary(y):
-    return y>0
+    return y>0.5
     
     
 def _fill(y):
@@ -18,6 +18,7 @@ def _fill(y):
 
 
 # remove all but the largest connected region of ones
+# only one nerve segmentation per image
 def _one_region(y):
     # connected component analysis
     labels, nb_labels = ndimage.label(y)
@@ -31,8 +32,8 @@ def _one_region(y):
     return y
 
 
-# remove any predicted regions smaller than 50% of the size of the smallest
-# in the training set -- probably a false detection, not undersegmentation
+# remove predicted regions smaller than 80% of the smallest in training set 
+# probably a false detection...
 def _remove_small(y,y_train):
     # find smallest segmentation mask in training set
     sizes = np.sum(y_train,axis=(3,2))
@@ -42,8 +43,8 @@ def _remove_small(y,y_train):
     labels, nb_labels = ndimage.label(y)
     sizes = ndimage.sum(y,labels,range(nb_labels+1))
     
-    # remove if smaller than 0.5*smallest
-    remove = sizes<0.5*smallest
+    # remove if smaller than 0.8*smallest
+    remove = sizes<0.8*smallest
     remove = remove[labels]
     y[remove] = 0
     
@@ -55,5 +56,5 @@ def final(y,y_train):
     for i in range(y.shape[0]):
         y[i] = _fill(y[i])
         y[i] = _one_region(y[i])
-#        y[i] = _remove_small(y[i],y_train)
+        y[i] = _remove_small(y[i],y_train)
     return y

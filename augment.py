@@ -77,10 +77,10 @@ class Generator(object):
         
         h,w = x.shape[1],x.shape[2]
         transform = transform_matrix_offset_center(transform,h,w)
-        x = apply_transform(x,transform)
-        y = apply_transform(y,transform)
+#        x = apply_transform(x,transform)
+#        y = apply_transform(y,transform)
         
-        y = np.float32(y>0.5) # fix labels back to {0,1}
+#        y = np.float32(y>0.5) # fix labels back to {0,1}
         
         if self.hflip:
             if np.random.random() < 0.5:
@@ -160,7 +160,7 @@ class NumpyArrayIterator(Iterator):
         for i, j in enumerate(index_array):
             x = self.X[j]
             y = self.Y[j]
-            x,y = self.image_data_generator.random_transform(x.astype('float32'),y.astype('float32'))
+            x,y = self.image_data_generator.random_transform(x,y)
             batch_x[i] = x
             batch_y[i] = y
         return batch_x, batch_y

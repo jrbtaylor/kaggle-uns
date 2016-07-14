@@ -33,11 +33,19 @@ def _bn_relu_conv(nb_filter,filt_size):
     return f
     
     
-def _conv_relu_bn(nb_filter,filt_size):
+def _conv_relu_bn(nb_filter,filt_size=3):
     def f(input):
         conv = Convolution2D(nb_filter=nb_filter,nb_row=filt_size,nb_col=filt_size,border_mode='same')(input)
         relu = Activation('relu')(conv)
         return BatchNormalization()(relu)
+    return f
+
+
+def _conv_bn_relu(nb_filter,filt_size=3):
+    def f(input):
+        conv = Convolution2D(nb_filter=nb_filter,nb_row=filt_size,nb_col=filt_size,border_mode='same')(input)
+        bn = BatchNormalization()(conv)
+        return Activation('relu')(bn)
     return f
     
 
@@ -49,88 +57,59 @@ def _res_block(nb_filter,p_drop=0):
             residual = Dropout(p_drop)(residual)
         return _shortcut(input,residual)
     return f
+    
+def _fractal_block(nb_filter,b,c,drop_path,dropout):
+    from fractalnet import fractal_net
+    def f(input):
+        return fractal_net(b=b,c=c,conv=b*[(nb_filter,3,3)],drop_path=drop_path,dropout=b*[dropout])(input)
+    return f
 
+# original loss function (does batch-sum before division instead of mean of division)
+def _dice_loss(y_true, y_pred):
+    from keras import backend as K
+    smooth = 1.
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+    return -(2. * K.dot(y_true_f, K.transpose(y_pred_f)) + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
 
+# corrected loss function (but doesn't converge)
 #def _dice_loss(y_true, y_pred):
 #    from keras import backend as K
 #    smooth = 1.
-#    y_true_f = K.flatten(y_true)
-#    y_pred_f = K.flatten(y_pred)
-#    return -(2. * K.dot(y_true_f, K.transpose(y_pred_f)) + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
-
-def _dice_loss(y_true, y_pred):
-    from keras import backend as K
-    smooth = 1
-    y_true_f = K.batch_flatten(y_true)
-    y_pred_f = K.batch_flatten(y_pred)
-    intersection = 2. * K.sum(y_true_f * y_pred_f, axis=1, keepdims=True) + smooth
-    union = K.sum(y_true_f, axis=1, keepdims=True) + K.sum(y_pred_f, axis=1, keepdims=True) + smooth
-    return K.mean(intersection / union)
-    
+#    y_true_f = K.batch_flatten(y_true)
+#    y_pred_f = K.batch_flatten(y_pred)
+#    intersection = 2.*K.batch_dot(y_true_f,y_pred_f,axes=1)+smooth
+#    union = K.sum(y_true_f, axis=1, keepdims=True) + K.sum(y_pred_f, axis=1, keepdims=True) + smooth
+#    return -K.mean(intersection / union)
     
 def _dice(y_true,y_pred):
     y_pred = (y_pred>0.5).astype('float32')
     return -_dice_loss(y_true,y_pred)
     
 
-def init_resMultiDrop(f):
+def init_fractal(f,b,c,dp):
     inputs = Input((1,rows,cols))
-    conv1 = Convolution2D(f,3,3,activation='relu',border_mode='same')(inputs)
-    conv1 = BatchNormalization()(conv1)
-    conv1 = Convolution2D(f,3,3,activation='relu',border_mode='same')(conv1)
-    conv2 = MaxPooling2D(pool_size=(2,2))(conv1)
-    conv2 = BatchNormalization()(conv2)
-    conv2 = _res_block(2*f)(conv2)
-    conv2 = BatchNormalization()(conv2)
-    conv2 = _res_block(2*f)(conv2)
-    conv2 = _res_block(2*f)(conv2)
-    conv3 = MaxPooling2D(pool_size=(2,2))(conv2)
-    conv3 = BatchNormalization()(conv3)
-    conv3 = _res_block(4*f)(conv3)
-    conv3 = BatchNormalization()(conv3)
-    conv3 = _res_block(4*f)(conv3)
-    conv3 = _res_block(4*f)(conv3)
-    conv4 = MaxPooling2D(pool_size=(2,2))(conv3)
-    conv4 = BatchNormalization()(conv4)
-    conv4 = _res_block(8*f)(conv4)
-    conv4 = BatchNormalization()(conv4)
-    conv4 = _res_block(8*f)(conv4)
-    conv4 = _res_block(8*f)(conv4)
-    conv5 = MaxPooling2D(pool_size=(2,2))(conv4)
-    conv5 = BatchNormalization()(conv5)
-    conv5 = _res_block(16*f)(conv5)
-    conv5 = BatchNormalization()(conv5)
-    conv5 = _res_block(16*f)(conv5)
-    conv5 = _res_block(16*f)(conv5)
+    frac1 = _fractal_block(1*f,b,c,dp,0)(inputs)
+    down1 = MaxPooling2D(pool_size=(2,2))(frac1)
+    frac2 = _fractal_block(2*f,b,c,dp,0)(down1)
+    down2 = MaxPooling2D(pool_size=(2,2))(frac2)
+    frac3 = _fractal_block(4*f,b,c,dp,0)(down2)
+    down3 = MaxPooling2D(pool_size=(2,2))(frac3)
+    frac4 = _fractal_block(8*f,b,c,dp,0)(down3)
+    down4 = MaxPooling2D(pool_size=(2,2))(frac4)
+    frac5 = _fractal_block(16*f,b,c,dp,0)(down4)
     
-    up1 = merge([UpSampling2D(size=(2,2))(conv5),conv4],mode='concat',concat_axis=1)
-    conv6 = BatchNormalization()(up1)
-    conv6 = _res_block(8*f)(conv6)
-    conv6 = BatchNormalization()(conv6)
-    conv6 = _res_block(8*f)(conv6)
-    conv6 = _res_block(8*f)(conv6)
-    up2 = merge([UpSampling2D(size=(2,2))(conv6),conv3],mode='concat',concat_axis=1)
-    conv7 = BatchNormalization()(up2)
-    conv7 = _res_block(4*f)(conv7)
-    conv7 = BatchNormalization()(conv7)
-    conv7 = _res_block(4*f)(conv7)
-    conv7 = _res_block(4*f)(conv7)
-    up3 = merge([UpSampling2D(size=(2,2))(conv7),conv2],mode='concat',concat_axis=1)
-    conv8 = BatchNormalization()(up3)
-    conv8 = _res_block(2*f)(conv8)
-    conv8 = BatchNormalization()(conv8)
-    conv8 = _res_block(2*f)(conv8)
-    conv8 = _res_block(2*f)(conv8)
-    out8 = Dropout(0.25)(conv8)
-    out8 = Convolution2D(1,3,3,activation='hard_sigmoid',border_mode='same')(out8)
-    up4 = merge([UpSampling2D(size=(2,2))(conv8),conv1],mode='concat',concat_axis=1)
-    conv9 = BatchNormalization()(up4)
-    conv9 = _res_block(f)(conv9)
-    conv9 = BatchNormalization()(conv9)
-    conv9 = _res_block(f)(conv9)
-    out9 = Dropout(0.125)(conv9)
-    out9 = Convolution2D(1,3,3,activation='hard_sigmoid',border_mode='same')(out9)
+    up1 = merge([UpSampling2D(size=(2,2))(frac5),frac4],mode='concat',concat_axis=1)
+    frac6 = _fractal_block(12*f,b,c,dp,0.35)(up1)
+    up2 = merge([UpSampling2D(size=(2,2))(frac6),frac3],mode='concat',concat_axis=1)
+    frac7 = _fractal_block(8*f,b,c,dp,0.4)(up2)
+    up3 = merge([UpSampling2D(size=(2,2))(frac7),frac2],mode='concat',concat_axis=1)
+    frac8 = _fractal_block(5*f,b,c,dp,0.45)(up3)
+    up4 = merge([UpSampling2D(size=(2,2))(frac8),frac1],mode='concat',concat_axis=1)
+    frac9 = _fractal_block(3*f,b,c,dp,0.5)(up4)
     
+    out8 = Convolution2D(1,1,1,activation='hard_sigmoid',border_mode='same')(frac8)
+    out9 = Convolution2D(1,1,1,activation='hard_sigmoid',border_mode='same')(frac9)
     outputs = merge([UpSampling2D(size=(2,2))(out8),out9],mode='mul')
     
     net = Model(input=inputs,output=outputs)
@@ -138,7 +117,7 @@ def init_resMultiDrop(f):
     net.compile(loss=_dice_loss,optimizer='adam',metrics=[_dice])
     
     return net
-    
+
 
 def init_resMulti(f):
     inputs = Input((1,rows,cols))
@@ -268,8 +247,7 @@ def init_res(f):
     
     return net
 
-def init_fractalunet():
-    f = 16    
+def init_fractalunet(f):
     
     inputs = Input((1,rows,cols))
     

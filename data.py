@@ -10,8 +10,8 @@ import numpy as np
 from keras.preprocessing import image
 from scipy.misc import imresize
 
-rows = 96 #64
-cols = 128 #80
+rows = 48 #96 #64
+cols = 64 #128 #80
 
 def normalize(x_train,x_test):
     print('Normalizing data')

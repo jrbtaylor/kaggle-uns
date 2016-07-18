@@ -51,7 +51,7 @@ nb_val = int(np.round(0.06*len(set(idx_train)))) # 6% is 3, 5% is 2 patients
 ensemble = int(np.floor(len(set(idx_train))/nb_val)) # number of models to train
 
 # Model
-cnn = model.init_fractal(32,3,2,0.5)
+cnn = model.init_fractal(32,3,2,0.15)
 #cnn = model.init_fractalunet(32)
 #cnn = model.init_resMulti(32)
 #cnn = model.init_resMultiDrop(32)
@@ -60,7 +60,7 @@ cnn = model.init_fractal(32,3,2,0.5)
 #       since this may take >10 minutes for a fractalnet, just shuffle the original weights
 w0 = cnn.get_weights()
 
-for e in range(ensemble):
+for e in range(1): #range(ensemble):
     
     # Re-initialize the weights
     weights = [np.random.permutation(w.flat).reshape(w.shape) for w in w0]
@@ -74,8 +74,8 @@ for e in range(ensemble):
     y_val = y_train[val_set,:,:,:]
 
     # Augmentation
-    #datagen = augment.Generator(hflip=True,vflip=True,rotation=10,zoom=0.05,shear=5)
-    datagen = augment.Generator(hflip=True,vflip=True)
+    datagen = augment.Generator(hflip=True,vflip=True,rotation=10,zoom=0.05,shear=5)
+#    datagen = augment.Generator(hflip=True,vflip=True)
     trainflow = datagen.flow(x_train[train_set,:,:,:],y_train[train_set,:,:,:],batch_size=batch_size,seed=1)
 
     # Train
@@ -91,14 +91,14 @@ for e in range(ensemble):
 
 #%%
 # Test
-import model; reload(model)
-cnn = model.init_resMulti(32)
+#import model; reload(model)
+#cnn = model.init_fractal(32,3,2,0.5)
 
 batch_size = 32
 modelcount = 0
 y_pred = np.zeros_like(x_test)
 
-for e in range(ensemble):
+for e in range(1):
     
     # Load the net
     filename = 'cnn'+str(e)+'.hdf5'

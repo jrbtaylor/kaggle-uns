@@ -13,6 +13,7 @@ unet architecture as in: https://arxiv.org/pdf/1505.04597.pdf
 from keras.models import Model
 from keras.layers import Input, merge, Dropout, Activation, Flatten, Dense
 from keras.layers import Convolution2D, MaxPooling2D, AveragePooling2D, UpSampling2D, Reshape
+from keras.layers import AtrousConvolution2D
 from keras.layers.normalization import BatchNormalization
 from data import rows, cols
 
@@ -63,6 +64,13 @@ def _fractal_block(nb_filter,b,c,drop_path,dropout):
     def f(input):
         return fractal_net(b=b,c=c,conv=b*[(nb_filter,3,3)],drop_path=drop_path,dropout=b*[dropout])(input)
     return f
+    
+def _dilated_conv(nb_filter,dil):
+    def f(input):
+        conv = AtrousConvolution2D(nb_filter,3,3,atrous_rate=(dil,dil),border_mode='same')(input)
+        bn = BatchNormalization()(conv)
+        return Activation('relu')(bn)
+    return f
 
 # original loss function (does batch-sum before division instead of mean of division)
 def _dice_loss(y_true, y_pred):
@@ -85,6 +93,23 @@ def _dice_loss(y_true, y_pred):
 def _dice(y_true,y_pred):
     y_pred = (y_pred>0.5).astype('float32')
     return -_dice_loss(y_true,y_pred)
+    
+
+def init_dilated(f):
+    inputs = Input((1,rows,cols))
+    conv = _dilated_conv(1*f,1)(inputs)
+    conv = _dilated_conv(2*f,2)(conv)
+    conv = _dilated_conv(4*f,2)(conv)
+    conv = _dilated_conv(8*f,2)(conv)
+    conv = _dilated_conv(16*f,2)(conv)
+    conv = _dilated_conv(16*f,2)(conv)
+    outputs = Dropout(0.5)(conv)
+    outputs = Convolution2D(1,1,1,activation='hard_sigmoid',border_mode='same')(outputs)
+    
+    net = Model(input=inputs,output=outputs)
+    net.compile(loss=_dice_loss,optimizer='adam',metrics=[_dice])
+    
+    return net
     
 
 def init_fractal(f,b,c,dp):

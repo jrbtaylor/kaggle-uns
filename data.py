@@ -10,8 +10,8 @@ import numpy as np
 from keras.preprocessing import image
 from scipy.misc import imresize
 
-rows = 48 #48 #96 #64
-cols = 64 #64 #128 #80
+rows = 96 #48 #96 #64
+cols = 128 #64 #128 #80
 
 def normalize(x_train,x_test):
     print('Normalizing data')
@@ -83,3 +83,27 @@ def load_test():
         idx[f] = int(x_files[f].split('.')[0])
         
     return x,idx
+    
+# Load data
+def load_data():
+    if os.path.isfile('x_train.npy') and os.path.isfile('y_train.npy') and os.path.isfile('idx_train.npy') and os.path.isfile('x_test.npy') and os.path.isfile('idx_test.npy'):
+        print('Reloading data')
+        def reloading(x):
+            return np.load(os.path.join(os.getcwd(),x))
+        x_train = reloading('x_train.npy')
+        y_train = reloading('y_train.npy')
+        idx_train = reloading('idx_train.npy')
+        x_test = reloading('x_test.npy')
+        idx_test = reloading('idx_test.npy')
+    else:
+        x_train,y_train,idx_train = load_train()
+        x_test,idx_test = load_test()
+        x_train,x_test = normalize(x_train,x_test)
+        
+        # Save data for quick reloading
+        np.save('x_train',x_train)
+        np.save('y_train',y_train)
+        np.save('idx_train',idx_train)
+        np.save('x_test',x_test)
+        np.save('idx_test',idx_test)
+    return x_train,y_train,idx_train,x_test,idx_test

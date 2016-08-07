@@ -15,6 +15,7 @@ from keras.layers import Input, merge, Dropout, Activation, Flatten, Dense
 from keras.layers import Convolution2D, MaxPooling2D, AveragePooling2D, UpSampling2D, Reshape
 from keras.layers import AtrousConvolution2D
 from keras.layers.normalization import BatchNormalization
+from keras import optimizers as ko
 from data import rows, cols
 
 
@@ -26,7 +27,7 @@ def _shortcut(input,residual):
     return merge([shortcut,residual],mode='sum')
 
 
-def _bn_relu_conv(nb_filter,filt_size):
+def _bn_relu_conv(nb_filter,filt_size=3):
     def f(input):
         norm = BatchNormalization()(input)
         relu = Activation('relu')(norm)
@@ -110,7 +111,39 @@ def init_dilated(f):
     net.compile(loss=_dice_loss,optimizer='adam',metrics=[_dice])
     
     return net
+  
+def init_fractal2(f,b,c,dp):
+    inputs = Input((1,rows,cols))
+    conv1 = _conv_bn_relu(f)(inputs)
+    conv1 = _conv_bn_relu(f)(conv1)
+    down1 = MaxPooling2D(pool_size=(2,2))(conv1)
+    frac2 = _fractal_block(2*f,b,c,dp,0.02)(down1)
+    down2 = MaxPooling2D(pool_size=(2,2))(frac2)
+    frac3 = _fractal_block(4*f,b,c,dp,0.04)(down2)
+    down3 = MaxPooling2D(pool_size=(2,2))(frac3)
+    frac4 = _fractal_block(8*f,b,c,dp,0.06)(down3)
+    down4 = MaxPooling2D(pool_size=(2,2))(frac4)
+    frac5 = _fractal_block(16*f,b,c,dp,0.08)(down4)
     
+    up1 = merge([UpSampling2D(size=(2,2))(frac5),frac4],mode='concat',concat_axis=1)
+    frac6 = _fractal_block(12*f,b,c,dp,0.2)(up1)
+    up2 = merge([UpSampling2D(size=(2,2))(frac6),frac3],mode='concat',concat_axis=1)
+    frac7 = _fractal_block(8*f,b,c,dp,0.3)(up2)
+    up3 = merge([UpSampling2D(size=(2,2))(frac7),frac2],mode='concat',concat_axis=1)
+    frac8 = _fractal_block(5*f,b,c,dp,0.4)(up3)
+    up4 = merge([UpSampling2D(size=(2,2))(frac8),conv1],mode='concat',concat_axis=1)
+    frac9 = _fractal_block(3*f,1,c,dp,0.5)(up4)
+    
+    out8 = Convolution2D(1,1,1,activation='hard_sigmoid',border_mode='same')(frac8)
+    out9 = Convolution2D(1,1,1,activation='hard_sigmoid',border_mode='same')(frac9)
+    outputs = merge([UpSampling2D(size=(2,2))(out8),out9],mode='mul')
+    
+    net = Model(input=inputs,output=outputs)
+
+    net.compile(loss=_dice_loss,optimizer=ko.Adam(lr=0.0001),metrics=[_dice])
+    
+    return net
+  
 
 def init_fractal(f,b,c,dp):
     inputs = Input((1,rows,cols))
@@ -139,7 +172,7 @@ def init_fractal(f,b,c,dp):
     
     net = Model(input=inputs,output=outputs)
 
-    net.compile(loss=_dice_loss,optimizer='adam',metrics=[_dice])
+    net.compile(loss=_dice_loss,optimizer=ko.Adam(lr=0.0001),metrics=[_dice])
     
     return net
 
@@ -404,7 +437,7 @@ def init_fractalunet(f):
     
     net = Model(input=inputs,output=outputs)
 
-    net.compile(loss=_dice_loss,optimizer='adadelta',metrics=[_dice])
+    net.compile(loss=_dice_loss,optimizer='adam',metrics=[_dice])
     
     return net
         
@@ -531,3 +564,50 @@ def init_conv_old(f):
     net.compile(loss=_dice_loss,optimizer='adadelta',metrics=[_dice])
     
     return net
+    
+    
+def prob_label(f):    
+    inputs = Input((1,rows,cols))
+    conv = Convolution2D(f,3,3,activation='relu',border_mode='same')(inputs)
+    conv = MaxPooling2D(pool_size=(2,2))(conv)
+    conv = Dropout(0.02)(conv)
+    conv = Convolution2D(2*f,3,3,activation='relu',border_mode='same')(conv)
+    conv = MaxPooling2D(pool_size=(2,2))(conv)
+    conv = Dropout(0.04)(conv)
+    conv = Convolution2D(4*f,3,3,activation='relu',border_mode='same')(conv)
+    conv = MaxPooling2D(pool_size=(2,2))(conv)
+    conv = Dropout(0.08)(conv)
+    conv = Convolution2D(8*f,3,3,activation='relu',border_mode='same')(conv)
+    conv = MaxPooling2D(pool_size=(2,2))(conv)
+    conv = Dropout(0.16)(conv)
+    conv = Convolution2D(16*f,3,3,activation='relu')(conv)
+    conv = Dropout(0.32)(conv)
+    out = Flatten()(conv)
+    out = Dense(32*f,activation='relu')(out)
+    out = Dropout(0.5)(out)
+    out = Dense(8*f,activation='relu')(out)
+    out = Dropout(0.5)(out)
+    out = Dense(1,activation='hard_sigmoid')(out)
+    
+    net = Model(input=inputs,output=out)
+    net.compile(loss='binary_crossentropy',optimizer=ko.Adam(lr=0.00001),metrics=['accuracy'])
+#    net.compile(loss='mean_squared_error',optimizer=ko.Adam(lr=0.000001))
+    
+    return net
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

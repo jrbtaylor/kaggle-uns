@@ -43,7 +43,7 @@ class Generator(object):
         ***TO DO- multiplicative speckle noise
         - horizontal flipping
         - rotations 
-        - zooming (scaling up and cropping)
+        - zooming
         - shearing
     '''
     def __init__(self,
@@ -53,7 +53,7 @@ class Generator(object):
                  zoom = 0.,
                  shear = 0.):
         self.__dict__.update(locals())
-        self.zoom = [1-zoom,1] # zoom in only, no border effects
+        self.zoom = [1-zoom,1]
     
     def flow(self, x, y, batch_size=32, shuffle=True, seed=None):
         return NumpyArrayIterator(
@@ -77,20 +77,23 @@ class Generator(object):
         
         h,w = x.shape[1],x.shape[2]
         transform = transform_matrix_offset_center(transform,h,w)
-#        x = apply_transform(x,transform)
-#        y = apply_transform(y,transform)
+        x = apply_transform(x,transform)
+        if y.size>1:
+            y = apply_transform(y,transform)
         
-#        y = np.float32(y>0.5) # fix labels back to {0,1}
+        y = np.float32(y>0.5) # fix labels back to {0,1}
         
         if self.hflip:
             if np.random.random() < 0.5:
                 x = x[:,::-1]
-                y = y[:,::-1]
+                if y.size>1:
+                    y = y[:,::-1]
                 
         if self.vflip:
             if np.random.random() < 0.5:
                 x = x[::-1,:]
-                y = y[::-1,:]
+                if y.size>1:
+                    y = y[::-1,:]
                 
         return x,y
         

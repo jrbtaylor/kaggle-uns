@@ -10,15 +10,19 @@ np.random.seed(1)  # for reproducibility
 import os
 import data
 
-import model
-import augment
-from keras.callbacks import ModelCheckpoint, EarlyStopping
-
 x_train0,y_train0,idx_train0,x_test,idx_test = data.load_data()
 
 # fix missing masks in duplicate images
 import duplicates
 y_train0 = duplicates.dupmask(x_train0,y_train0,idx_train0,15)
+
+#------------------------------------------------------------------------------
+# Segmentation model
+#------------------------------------------------------------------------------
+
+import model
+import augment
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 
 # For fractalnet, need to increase recursion limit
 import sys
@@ -26,7 +30,7 @@ sys.setrecursionlimit(10000)
 
 epoch_size = 1024
 batch_size = 16
-nb_epoch = 1000
+nb_epoch = 500
 split_by_patient = False
 
 if split_by_patient:
@@ -37,11 +41,7 @@ else:
     ensemble = int(np.floor(x_train0.shape[0]/nb_val))
     shuffle = np.random.permutation(x_train0.shape[0])
 
-#------------------------------------------------------------------------------
-# Segmentation model
-#------------------------------------------------------------------------------
-
-#cnn = model.init_fractal2(40,3,2,0.15)
+#cnn = model.init_fractal2(32,3,2,0.15)
 
 # Note: keras lacks a mechanism to re-initialize the weights without recompiling the model,
 #       since this may take >10 minutes for a fractalnet, just shuffle the original weights
@@ -77,7 +77,7 @@ for e in range(ensemble): # range(ensemble) or range(1)
     # Train
     filename = 'cnn'+str(e)+'.hdf5'
     checkpoint = ModelCheckpoint(filename, monitor='val_loss', save_best_only=True)
-    earlyStopping= EarlyStopping(monitor='val_loss', patience=100, verbose=1)
+    earlyStopping= EarlyStopping(monitor='val_loss', patience=50, verbose=1)
     history = cnn.fit_generator(trainflow,samples_per_epoch=epoch_size,nb_epoch=nb_epoch,verbose=1,callbacks=[checkpoint,earlyStopping],validation_data=(x_val,y_val),max_q_size=10)
     
     if np.min(history.history['val_loss'])>-0.58: # if it failed to converge to anything useful
@@ -143,7 +143,7 @@ for e in range(ensemble):
 batch_size = 32
 
 # Predict the segmentation masks
-cnn = model.init_fractal2(40,3,2,0.15)
+cnn = model.init_fractal2(32,3,2,0.15)
 modelcount = 0
 y_pred = np.zeros_like(x_test)
 

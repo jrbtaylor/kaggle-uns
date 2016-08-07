@@ -12,7 +12,7 @@ unet architecture as in: https://arxiv.org/pdf/1505.04597.pdf
 
 from keras.models import Model
 from keras.layers import Input, merge, Dropout, Activation, Flatten, Dense
-from keras.layers import Convolution2D, MaxPooling2D, AveragePooling2D, UpSampling2D, Reshape
+from keras.layers import Convolution2D, MaxPooling2D, UpSampling2D
 from keras.layers import AtrousConvolution2D
 from keras.layers.normalization import BatchNormalization
 from keras import optimizers as ko

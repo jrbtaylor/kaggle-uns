@@ -111,16 +111,16 @@ for e in range(ensemble):
         val_set = [i for i in range(len(idx_train0)) if int(idx_train0[i]) in split]
         train_set = [i for i in range(len(idx_train0)) if int(idx_train0[i]) not in split]
         x_val = x_train0[val_set,:,:,:]
-        y_val = y_train0[val_set,:,:,:]
+        y_val = y_train0[val_set]
         x_train = x_train0[train_set,:,:,:]
-        y_train = y_train0[train_set,:,:,:]
+        y_train = y_train0[train_set]
     else:
         val_set = [e*nb_val+i+1 for i in range(nb_val)] # indeces in shuffle set
         train_set = [i for i in range(x_train0.shape[0]) if i not in val_set]
         x_val = x_train0[shuffle[val_set],:,:,:]
-        y_val = y_train0[shuffle[val_set],:,:,:]
+        y_val = y_train0[shuffle[val_set]]
         x_train = x_train0[shuffle[train_set],:,:,:]
-        y_train = y_train0[shuffle[train_set],:,:,:]
+        y_train = y_train0[shuffle[train_set]]
     
     # Augmentation
     datagen = augment.Generator(hflip=True,vflip=True,rotation=10,zoom=0.05,shear=5)

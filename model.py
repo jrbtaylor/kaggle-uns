@@ -60,7 +60,7 @@ def _res_block(nb_filter,p_drop=0):
         return _shortcut(input,residual)
     return f
     
-def _fractal_block(nb_filter,b,c,drop_path,dropout):
+def _fractal_block(nb_filter,b,c,drop_path,dropout=0):
     from fractalnet import fractal_net
     def f(input):
         return fractal_net(b=b,c=c,conv=b*[(nb_filter,3,3)],drop_path=drop_path,dropout=b*[dropout])(input)
@@ -114,25 +114,24 @@ def init_dilated(f):
   
 def init_fractal2(f,b,c,dp):
     inputs = Input((1,rows,cols))
-    conv1 = _conv_bn_relu(f)(inputs)
-    conv1 = _conv_bn_relu(f)(conv1)
-    down1 = MaxPooling2D(pool_size=(2,2))(conv1)
-    frac2 = _fractal_block(2*f,b,c,dp,0.02)(down1)
+    frac1 = _fractal_block(f,1,c,dp)(inputs)
+    down1 = MaxPooling2D(pool_size=(2,2))(frac1)
+    frac2 = _fractal_block(2*f,b,c,dp)(down1)
     down2 = MaxPooling2D(pool_size=(2,2))(frac2)
-    frac3 = _fractal_block(4*f,b,c,dp,0.04)(down2)
+    frac3 = _fractal_block(4*f,b,c,dp)(down2)
     down3 = MaxPooling2D(pool_size=(2,2))(frac3)
-    frac4 = _fractal_block(8*f,b,c,dp,0.06)(down3)
+    frac4 = _fractal_block(8*f,b,c,dp)(down3)
     down4 = MaxPooling2D(pool_size=(2,2))(frac4)
-    frac5 = _fractal_block(16*f,b,c,dp,0.08)(down4)
+    frac5 = _fractal_block(16*f,b,c,dp)(down4)
     
     up1 = merge([UpSampling2D(size=(2,2))(frac5),frac4],mode='concat',concat_axis=1)
-    frac6 = _fractal_block(12*f,b,c,dp,0.2)(up1)
+    frac6 = _fractal_block(12*f,b,c,dp,0.1)(up1)
     up2 = merge([UpSampling2D(size=(2,2))(frac6),frac3],mode='concat',concat_axis=1)
-    frac7 = _fractal_block(8*f,b,c,dp,0.3)(up2)
+    frac7 = _fractal_block(8*f,b,c,dp,0.2)(up2)
     up3 = merge([UpSampling2D(size=(2,2))(frac7),frac2],mode='concat',concat_axis=1)
-    frac8 = _fractal_block(5*f,b,c,dp,0.4)(up3)
-    up4 = merge([UpSampling2D(size=(2,2))(frac8),conv1],mode='concat',concat_axis=1)
-    frac9 = _fractal_block(3*f,1,c,dp,0.5)(up4)
+    frac8 = _fractal_block(5*f,b,c,dp,0.3)(up3)
+    up4 = merge([UpSampling2D(size=(2,2))(frac8),frac1],mode='concat',concat_axis=1)
+    frac9 = _fractal_block(3*f,1,c,dp,0.4)(up4)
     
     out8 = Convolution2D(1,1,1,activation='hard_sigmoid',border_mode='same')(frac8)
     out9 = Convolution2D(1,1,1,activation='hard_sigmoid',border_mode='same')(frac9)
@@ -140,7 +139,7 @@ def init_fractal2(f,b,c,dp):
     
     net = Model(input=inputs,output=outputs)
 
-    net.compile(loss=_dice_loss,optimizer=ko.Adam(lr=0.0001),metrics=[_dice])
+    net.compile(loss=_dice_loss,optimizer=ko.Adam(lr=0.001),metrics=[_dice])
     
     return net
   

@@ -11,8 +11,8 @@ import numpy as np
 
 def _binary(y):
     return y>0.5
-    
-    
+
+
 def _fill(y):
     return ndimage.binary_fill_holes(y)
 
@@ -37,13 +37,13 @@ def _one_region(y):
 def _remove_small(y,y_train):
     # find smallest segmentation mask in training set
     sizes = np.sum(y_train,axis=(3,2))
-    smallest = np.min(sizes[sizes>0])
+    smallest = np.min([s for s in sizes if s>0])
     
     # connected component analysis
     labels, nb_labels = ndimage.label(y)
     sizes = ndimage.sum(y,labels,range(nb_labels+1))
     
-    # remove if smaller than 0.8*smallest
+    # remove if smaller than th*smallest
     remove = sizes<0.8*smallest
     remove = remove[labels]
     y[remove] = 0

@@ -37,10 +37,10 @@ if split_by_patient:
     nb_val = int(np.round(0.06*len(set(idx_train0)))) # 6% is 3, 5% is 2 patients
     ensemble = int(np.floor(len(set(idx_train0))/nb_val)) # number of models to train
 else:
-    nb_val = int(np.round(0.05*x_train0.shape[0]))
+    nb_val = int(np.round(0.07*x_train0.shape[0]))
     ensemble = int(np.floor(x_train0.shape[0]/nb_val))
     shuffle = np.random.permutation(x_train0.shape[0])
-
+#%%
 #cnn = model.init_fractal2(32,3,2,0.15)
 
 # Note: keras lacks a mechanism to re-initialize the weights without recompiling the model,
@@ -51,7 +51,7 @@ for e in range(ensemble): # range(ensemble) or range(1)
 #    # Re-initialize the weights
 #    weights = [np.random.permutation(w.flat).reshape(w.shape) for w in w0]
 #    cnn.set_weights(weights)
-    cnn = model.init_fractal2(32,3,2,0.15)
+    cnn = model.init_fractal2(40,3,2,0.15)
     
     # Validation/training split
     if split_by_patient:
@@ -80,10 +80,10 @@ for e in range(ensemble): # range(ensemble) or range(1)
     earlyStopping= EarlyStopping(monitor='val_loss', patience=50, verbose=1)
     history = cnn.fit_generator(trainflow,samples_per_epoch=epoch_size,nb_epoch=nb_epoch,verbose=1,callbacks=[checkpoint,earlyStopping],validation_data=(x_val,y_val),max_q_size=10)
     
-    if np.min(history.history['val_loss'])>-0.58: # if it failed to converge to anything useful
+    if np.min(history.history['val_loss'])>-0.6: # if it failed to converge to anything useful
         os.remove(filename)
         print("Deleted model that failed to converge")  
-
+#%%
 #------------------------------------------------------------------------------
 # Predict likelihood of human labeling
 #------------------------------------------------------------------------------
@@ -135,24 +135,30 @@ for e in range(ensemble):
     if np.min(history.history['val_loss'])>0.5: # if it failed to converge to anything useful
         os.remove(filename)
         print("Deleted model that failed to converge")  
-
+#%%
 #------------------------------------------------------------------------------
 # Test
 #------------------------------------------------------------------------------
 
 batch_size = 32
+x_train0,y_train0,idx_train0,x_test,idx_test = data.load_data()
+y_train0 = duplicates.dupmask(x_train0,y_train0,idx_train0,15)
 
 # Predict the segmentation masks
-cnn = model.init_fractal2(32,3,2,0.15)
+cnn = model.init_fractal2(40,3,2,0.15)
 modelcount = 0
 y_pred = np.zeros_like(x_test)
 
 for e in range(ensemble):
     filename = 'cnn'+str(e)+'.hdf5'
     if os.path.isfile(filename):
-        cnn.load_weights(filename)
-        modelcount = modelcount+1
-        y_pred = y_pred + cnn.predict(x_test,batch_size=batch_size,verbose=1)
+        try: # there's a bug in one saved model for some unknown reason
+            cnn.load_weights(filename)
+            y_pred = y_pred + cnn.predict(x_test,batch_size=batch_size,verbose=1)
+            modelcount = modelcount+1
+        except ValueError:
+            message = 'error: skipping model ' + filename
+            print(message)
         
 y_pred = y_pred/modelcount
 
@@ -166,9 +172,14 @@ if merge_with_probability:
     for e in range(ensemble):
         filename = 'cnn_prob'+str(e)+'.hdf5'
         if os.path.isfile(filename):
-            cnn.load_weights(filename)
-            modelcount = modelcount+1
-            prob_label = prob_label + np.squeeze(cnn.predict(x_test,batch_size=batch_size,verbose=1))       
+            try: # there's a bug in one saved model for some unknown reason
+                cnn.load_weights(filename)
+                prob_label = prob_label + np.squeeze(cnn.predict(x_test,batch_size=batch_size,verbose=1))       
+                modelcount = modelcount+1
+            except ValueError:
+                message = 'error: skipping model ' + filename
+                print(message)
+                
     prob_label = prob_label/modelcount
     prob_label = (prob_label>0.5).astype(float)
     
@@ -178,6 +189,6 @@ if merge_with_probability:
     y_pred = np.sqrt(np.multiply(y_pred,prob_label))
 
 import postprocessing
-y_pred = postprocessing.final(y_pred,y_train)
+y_proc = postprocessing.final(y_pred,y_train0)
 import submit
-submit.final(y_pred,idx_test)
+submit.final(y_proc,idx_test)
